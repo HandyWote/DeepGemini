@@ -60,12 +60,13 @@ class use_api:
         self.ollama_message.append(r['message'])
         content = r['message']['content']
         prompt_count = r['prompt_eval_count']
-        return content, prompt_count
+        return '', content, prompt_count
 
 
 if __name__ == '__main__':
     test = use_api()
-    with open('config.json', 'r', encoding='utf-8') as f:
+
+    with open('test_config.json', 'r', encoding='utf-8') as f:
         config = json.load(f)
 
         ollama_config = config['ollama']
@@ -81,5 +82,7 @@ if __name__ == '__main__':
         test.openai_model_name = openai_config['model_name']
         system_prompt = openai_config['system_prompt']
         test.openai_message = [{"role": "system", "content": system_prompt}]
-    cont = test.get_ollama('你好')
+
+    cont = test.get_openai('你好')
+
     print(cont)
