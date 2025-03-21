@@ -1,0 +1,14 @@
+{
+    "ollama": {
+        "url": "http://127.0.0.1:11434/api/chat",
+        "api": "",
+        "model_name": "",
+        "system_prompt": "你是一个好助手"
+    },
+    "openai": {
+        "api": "",
+        "url": "",
+        "model_name": "",
+        "system_prompt": "你是一个好助手"
+    }
+}
