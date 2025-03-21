@@ -1,3 +1,4 @@
+
 import requests
 from openai import OpenAI
 import json
@@ -5,84 +6,77 @@ import json
 
 class use_api:
     def __init__(self):
-         self.load_config()
+        self.config_name = 'config.json'
+        self.model_provider = ''
+        self.url = ''
+        self.api = ''
+        self.model_name = ''
+        self.system_prompt = ''
+        self.message = []
 
-
-    def load_config(self):
+    def load_config(self, config_name, model_provider):
         try:
-            with open('config.json', 'r', encoding='utf-8') as f:
+            with open(config_name, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-
-                ollama_config = config['ollama']
-                self.ollama_url = ollama_config['url']
-                self.ollama_api = ollama_config['api']
-                self.ollama_model_name = ollama_config['model_name']
-                system_prompt = ollama_config['system_prompt']
-                self.ollama_message = [{"role": "system", "content": system_prompt}]
-
-                openai_config = config['openai']
-                self.openai_url = openai_config['url']
-                self.openai_api = openai_config['api']
-                self.openai_model_name = openai_config['model_name']
-                system_prompt = openai_config['system_prompt']
-                self.openai_message = [{"role": "system", "content": system_prompt}]
-
+                config = config[model_provider]
+                self.url = config['url']
+                self.api = config['api']
+                self.model_name = config['model_name']
+                self.system_prompt = config['system_prompt']
+                self.message = [{"role": "system", "content": self.system_prompt}]
             print("成功加载配置文件")
         except Exception as e:
             print(f"加载配置文件失败: {str(e)}")
             print("请确保config.json文件存在且格式正确")
             exit(1)
 
+    def reload(self):
+        self.load_config(self.config_name, self.model_provider)
 
     def get_openai(self, words):
-        self.openai_message.append({"role": "user", "content": words})
-        client = OpenAI(api_key = self.openai_api, base_url= self.openai_url)
-        response = client.chat.completions.create(
-            model=self.openai_model_name,
-            messages=self.openai_message,
-            stream=False
-        )
-        self.openai_message.append(response.choices[0].message)
-        reasoning_content = response.choices[0].message.reasoning_content
-        content = response.choices[0].message.content
-        total_tokens = response.usage.total_tokens
-        return reasoning_content, content, total_tokens
+        try:
+            self.message.append({"role": "user", "content": words})
+            client = OpenAI(api_key = self.api, base_url= self.url)
+            print('发送请求')
+            response = client.chat.completions.create(
+                model=self.model_name,
+                messages=self.message,
+                stream=False
+            )
+            self.message.append(response.choices[0].message)
+            reasoning_content = response.choices[0].message.reasoning_content
+            content = response.choices[0].message.content
+            total_tokens = response.usage.total_tokens
+            return reasoning_content, content, total_tokens
+        except Exception:
+            print('请求失败')
+
 
 
     def get_ollama(self, words):
-        self.ollama_message.append({"role": "user", "content": words})
-        data = {
-            "model": self.ollama_model_name,
-            "messages": self.ollama_message,
-            "stream": False
-        }
-        r = requests.post(self.ollama_url, json=data).json()
-        self.ollama_message.append(r['message'])
-        content = r['message']['content']
-        prompt_count = r['prompt_eval_count']
-        return '', content, prompt_count
+        try:
+            self.message.append({"role": "user", "content": words})
+            data = {
+                "model": self.model_name,
+                "messages": self.message,
+                "stream": False
+            }
+            print('发送请求')
+            r = requests.post(self.url, json=data).json()
+            self.message.append(r['message'])
+            content = r['message']['content']
+            prompt_count = r['prompt_eval_count']
+            return '', content, prompt_count
+        except Exception:
+            print('请求失败')
 
 
 if __name__ == '__main__':
     test = use_api()
-
-    with open('test_config.json', 'r', encoding='utf-8') as f:
-        config = json.load(f)
-
-        ollama_config = config['ollama']
-        test.ollama_url = ollama_config['url']
-        test.ollama_api = ollama_config['api']
-        test.ollama_model_name = ollama_config['model_name']
-        system_prompt = ollama_config['system_prompt']
-        test.ollama_message = [{"role": "system", "content": system_prompt}]
-
-        openai_config = config['openai']
-        test.openai_url = openai_config['url']
-        test.openai_api = openai_config['api']
-        test.openai_model_name = openai_config['model_name']
-        system_prompt = openai_config['system_prompt']
-        test.openai_message = [{"role": "system", "content": system_prompt}]
-
-    cont = test.get_openai('你好')
-
-    print(cont)
+    test.config_name = 'test_config.json'
+    test.model_provider = 'deepseek'
+    test.reload()
+    cont = test.get_openai('1')
+    if cont:
+        for i in cont:
+            print(i)
