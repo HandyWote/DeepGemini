@@ -2,3 +2,5 @@ test_config.json
 DeepGemini.km
 .idea
 .venv
+.trea
+__pycache__

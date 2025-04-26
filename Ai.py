@@ -17,8 +17,8 @@ class BaseAi(ABC):
             "Authorization": f"Bearer {self.api}",
             "Content-Type": "application/json"
         }
-
-    def load_config(self, config_name, model_provider):
+    
+    def load_config(self, config_name : str, model_provider : str) -> None:
         try:
             with open(config_name, 'r', encoding='utf-8') as f:
                 config = json.load(f)
@@ -47,7 +47,7 @@ class BaseAi(ABC):
             print(f"未知错误: {str(e)}")
             exit(1)
 
-    def post_ai(self, words : str):
+    def post_ai(self, words : str) -> dict[str: str]:
         self.message.append({"role" : "user", "content" : words})
         data = {
             "model" : self.model_name,
@@ -72,45 +72,50 @@ class Deepseek(BaseAi):
     def __init__(self, config_name):
         super().__init__(config_name, 'deepseek')
 
-    def post_ai(self, words : str):
+    def post_ai(self, words : str) -> tuple[str, str, str, list] or tuple[None, None, None, list]:
         r = super().post_ai(words)
         try:
             content = r['choices'][-1]['message']['content']
             reasoning_content = r['choices'][-1]['message']['reasoning_content']
             total_tokens = r['usage']['total_tokens']
-            return reasoning_content, content, total_tokens
+            self.message.append({"role": "user", "content": content})
+            return reasoning_content, content, total_tokens, self.message
         except (KeyError, IndexError, TypeError) as e:
             print(f"解析响应失败: {str(e)}")
-            return None, None, None
+            return None, None, None, self.message
 
 class Zhipu(BaseAi):
     def __init__(self, config_name):
         super().__init__(config_name, 'zhipu')
 
-    def post_ai(self, words : str):
+    def post_ai(self, words : str) -> tuple[str, str, str, list] or tuple[None, None, None, list]:
         r = super().post_ai(words)
         try:
             content = r['choices'][-1]['message']['content']
             reasoning_content = re.search(r'<think>(.*?)</think>', content, re.DOTALL).group(1).strip()
             content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
             total_tokens = r['usage']['total_tokens']
-            return reasoning_content, content, total_tokens
+            self.message.append({"role": "user", "content": content})
+            return reasoning_content, content, total_tokens, self.message
         except (KeyError, IndexError, TypeError, AttributeError) as e:
-            return None, None, None
+            print(f"解析响应失败: {str(e)}")
+            return None, None, None, self.message
 
 class Ollama(BaseAi):
     def __init__(self, config_name):
         super().__init__(config_name, 'ollama')
 
-    def post_ai(self, words : str):
+    def post_ai(self, words : str) -> tuple[str, str, str, list] or tuple[None, None, None, list]:
         r = super().post_ai(words)
         try:
             content = r['message']['content']
             reasoning_content = None
             total_tokens = r['prompt_eval_count']
-            return reasoning_content, content, total_tokens
+            self.message.append({"role": "user", "content": content})
+            return reasoning_content, content, total_tokens, self.message
         except (KeyError, IndexError, TypeError) as e:
-            return None, None, None
+            print(f"解析响应失败: {str(e)}")
+            return None, None, None, self.message
 
 
 if __name__ == '__main__':
